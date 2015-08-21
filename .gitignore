@@ -1,0 +1,3 @@
+*.o
+/disorderfs
+/disorderfs.1

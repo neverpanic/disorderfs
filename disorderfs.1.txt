@@ -1,0 +1,53 @@
+DISORDERFS(1)
+=============
+:doctype: manpage
+:revdate: 2015-08-21
+
+NAME
+----
+disorderfs - FUSE filesystem that introduces non-determinism
+
+
+SYNOPSIS
+--------
+*disorderfs* ['OPTIONS'...] 'ROOTDIR' 'MOUNTPOINT'
+
+
+DESCRIPTION
+-----------
+*disorderfs* is an overlay FUSE filesystem that introduces non-determinism
+into filesystem metadata.  For example, it can randomize the order
+in which directory entries are read.  This is useful for detecting
+non-determinism in the build process.
+
+'ROOTDIR' is the underlying directory that is to be mirrored, and 'MOUNTPOINT' is
+where the overlay should be mounted.
+
+
+OPTIONS
+-------
+See fusermount(1), mount.fuse(8), and mount(8) for a full list of options.
+
+Options specific to *disorderfs*:
+
+*--help*, *-h*::
+  Display help.
+
+*--version*, *-V*::
+  Display the version.
+
+
+BUGS
+----
+Errors from close are not properly reported.
+
+fsync is not implemented.
+
+xattrs are not implemented.
+
+Locks are not propagated to the underlying filesystem.
+
+
+AUTHOR
+------
+Andrew Ayer <agwa@andrewayer.name>
