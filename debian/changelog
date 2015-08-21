@@ -1,0 +1,5 @@
+disorderfs (0.1.0-1) unstable; urgency=medium
+
+  * Initial release. (Closes: #796401)
+
+ -- Andrew Ayer <agwa@andrewayer.name>  Fri, 21 Aug 2015 20:33:59 +0200

@@ -1,0 +1,7 @@
+#!/usr/bin/make -f
+
+export PREFIX=/usr
+export ENABLE_MAN=yes
+
+%:
+	dh $@

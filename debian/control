@@ -1,0 +1,17 @@
+Source: disorderfs
+Maintainer: Andrew Ayer <agwa@andrewayer.name>
+Section: utils
+Priority: extra
+Standards-Version: 3.9.6
+Build-Depends: debhelper (>= 9), libfuse-dev, asciidoc, xsltproc, docbook-xml, docbook-xsl
+Vcs-Git: https://anonscm.debian.org/git/reproducible/disorderfs.git
+Vcs-Browser: https://anonscm.debian.org/cgit/reproducible/disorderfs.git
+
+Package: disorderfs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, fuse
+Description: FUSE filesystem that introduces non-determinism
+ disorderfs is an overlay FUSE filesystem that introduces non-determinism
+ into filesystem metadata.  For example, it can randomize the order
+ in which directory entries are read.  This is useful for detecting
+ non-determinism in the build process.
