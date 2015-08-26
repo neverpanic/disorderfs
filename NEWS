@@ -1,0 +1,7 @@
+v0.2.0 (2015-08-26)
+  * Implement xattrs.
+  * Require rootdir arg to be absolute path, and document in man page.
+  * Clarify BUGS in man page.
+
+v0.1.0 (2015-08-21)
+  * Initial release.

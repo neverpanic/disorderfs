@@ -36,7 +36,7 @@
 #include <attr/xattr.h>
 #include <sys/types.h>
 
-#define DISORDERFS_VERSION "0.1.0"
+#define DISORDERFS_VERSION "0.2.0"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
