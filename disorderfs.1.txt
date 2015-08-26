@@ -20,8 +20,8 @@ into filesystem metadata.  For example, it can randomize the order
 in which directory entries are read.  This is useful for detecting
 non-determinism in the build process.
 
-'ROOTDIR' is the underlying directory that is to be mirrored, and 'MOUNTPOINT' is
-where the overlay should be mounted.
+'ROOTDIR' is the absolute path to the underlying directory that is to
+be mirrored, and 'MOUNTPOINT' is where the overlay should be mounted.
 
 
 OPTIONS
@@ -41,11 +41,15 @@ BUGS
 ----
 Errors from close are not properly reported.
 
-fsync is not implemented.
+fsync and fdatasync are not implemented (they report success but do not
+do anything).
 
-xattrs are not implemented.
+Locks are not propagated to the underlying filesystem.  Locks still work
+within disorderfs itself, but if one process accesses the underlying
+filesystem directly, and another process accesses through disorderfs,
+they won't see each others' locks.
 
-Locks are not propagated to the underlying filesystem.
+'ROOTDIR' must be specified as an absolute path.
 
 
 AUTHOR
