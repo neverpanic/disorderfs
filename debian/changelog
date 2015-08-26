@@ -1,3 +1,13 @@
+disorderfs (0.2.0-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Add xattr support
+    - Clarify BUGS in man page
+    - Require rootdir arg to be absolute path, and document in man page
+  * Set architecture to linux-any
+
+ -- Andrew Ayer <agwa@andrewayer.name>  Wed, 26 Aug 2015 13:11:38 -0700
+
 disorderfs (0.1.0-1) unstable; urgency=medium
 
   * Initial release. (Closes: #796401)
