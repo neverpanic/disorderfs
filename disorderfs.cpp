@@ -171,16 +171,20 @@ int	main (int argc, char** argv)
 	disorderfs_fuse_operations.fsync = [] (const char* path, int datasync, struct fuse_file_info* info) -> int {
 	};
 	*/
-	/* TODO: xattrs
-	disorderfs_fuse_operations.setxattr = [] (const char *, const char *, const char *, size_t, int) -> int {
+	disorderfs_fuse_operations.setxattr = [] (const char* path, const char* name, const char* value, size_t size, int flags) -> int {
+		return wrap(setxattr((root + path).c_str(), name, value, size, flags));
 	};
-	disorderfs_fuse_operations.getxattr = [] (const char *, const char *, char *, size_t) -> int {
+	disorderfs_fuse_operations.getxattr = [] (const char* path, const char* name, char* value, size_t size) -> int {
+		ssize_t res = getxattr((root + path).c_str(), name, value, size);
+		return res >= 0 ? res : -errno;
 	};
-	disorderfs_fuse_operations.listxattr = [] (const char *, char *, size_t) -> int {
+	disorderfs_fuse_operations.listxattr = [] (const char* path, char* list, size_t size) -> int {
+		ssize_t res = listxattr((root + path).c_str(), list, size);
+		return res >= 0 ? res : -errno;
 	};
-	disorderfs_fuse_operations.removexattr = [] (const char *, const char *) -> int {
+	disorderfs_fuse_operations.removexattr = [] (const char* path, const char* name) -> int {
+		return wrap(removexattr((root + path).c_str(), name));
 	};
-	*/
 	disorderfs_fuse_operations.opendir = [] (const char* path, struct fuse_file_info* info) -> int {
 		std::unique_ptr<Dirents> dirents{new Dirents};
 
