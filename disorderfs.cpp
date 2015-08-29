@@ -35,16 +35,19 @@
 #include <algorithm>
 #include <attr/xattr.h>
 #include <sys/types.h>
+#include <stddef.h>
 
 #define DISORDERFS_VERSION "0.2.0"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
 	std::string			root;
-	// TODO: cmdline opts for these:
-	bool				shuffle_dirents{true};
-	bool				reverse_dirents{false};
-	bool				randomize_block_count{false};
+	struct Disorderfs_config {
+		bool			shuffle_dirents{false};
+		bool			reverse_dirents{true};
+		unsigned int		pad_blocks{1};
+	};
+	Disorderfs_config		config;
 
 	int wrap (int retval) { return retval == -1 ? -errno : 0; }
 	using Dirents = std::vector<std::string>;
@@ -54,7 +57,13 @@ namespace {
 		KEY_HELP,
 		KEY_VERSION
 	};
+#define DISORDERFS_OPT(t, p, v) { t, offsetof(Disorderfs_config, p), v }
 	const struct fuse_opt disorderfs_fuse_opts[] = {
+		DISORDERFS_OPT("--shuffle-dirents=no", shuffle_dirents, false),
+		DISORDERFS_OPT("--shuffle-dirents=yes", shuffle_dirents, true),
+		DISORDERFS_OPT("--reverse-dirents=no", reverse_dirents, false),
+		DISORDERFS_OPT("--reverse-dirents=yes", reverse_dirents, true),
+		DISORDERFS_OPT("--pad-blocks=%i", pad_blocks, 0),
 		FUSE_OPT_KEY("-h", KEY_HELP),
 		FUSE_OPT_KEY("--help", KEY_HELP),
 		FUSE_OPT_KEY("-V", KEY_VERSION),
@@ -72,6 +81,11 @@ namespace {
 			std::clog << "    -o opt,[opt...]        mount options (see below)" << std::endl;
 			std::clog << "    -h, --help             display help" << std::endl;
 			std::clog << "    -V, --version          display version info" << std::endl;
+			std::clog << std::endl;
+			std::clog << "disorderfs options:" << std::endl;
+			std::clog << "    --shuffle-dirents=yes|no  randomly shuffle dirents? (default: no)" << std::endl;
+			std::clog << "    --reverse-dirents=yes|no  reverse dirent order? (default: yes)" << std::endl;
+			std::clog << "    --pad-blocks=N         add N to st_blocks (default: 1)" << std::endl;
 			std::clog << std::endl;
 			fuse_opt_add_arg(outargs, "-ho");
 			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
@@ -99,9 +113,7 @@ int	main (int argc, char** argv)
 		if (lstat((root + path).c_str(), st) == -1) {
 			return -errno;
 		}
-		if (randomize_block_count) {
-			// TODO: also randomize blocks st->st_blocks = 129381;
-		}
+		st->st_blocks += config.pad_blocks;
 		return 0;
 	};
 	disorderfs_fuse_operations.readlink = [] (const char* path, char* buf, size_t sz) -> int {
@@ -198,7 +210,7 @@ int	main (int argc, char** argv)
 		while ((res = readdir_r(d, &dirent_storage, &dirent_p)) == 0 && dirent_p) {
 			dirents->emplace_back(dirent_p->d_name);
 		}
-		if (reverse_dirents) {
+		if (config.reverse_dirents) {
 			std::reverse(dirents->begin(), dirents->end());
 		}
 		closedir(d);
@@ -211,7 +223,7 @@ int	main (int argc, char** argv)
 	};
 	disorderfs_fuse_operations.readdir = [] (const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
 		Dirents&		dirents = *reinterpret_cast<Dirents*>(info->fh);
-		if (shuffle_dirents) {
+		if (config.shuffle_dirents) {
 			std::random_device	rd;
 			std::mt19937		g(rd());
 			std::shuffle(dirents.begin(), dirents.end(), g);
@@ -251,9 +263,7 @@ int	main (int argc, char** argv)
 		if (fstat(info->fh, st) == -1) {
 			return -errno;
 		}
-		if (randomize_block_count) {
-			// TODO: also randomize blocks st->st_blocks = 129381;
-		}
+		st->st_blocks += config.pad_blocks;
 		return 0;
 	};
 	/* TODO: locking
@@ -291,7 +301,7 @@ int	main (int argc, char** argv)
 	 * Parse command line options
 	 */
 	struct fuse_args	fargs = FUSE_ARGS_INIT(argc, argv);
-	fuse_opt_parse(&fargs, nullptr, disorderfs_fuse_opts, fuse_opt_proc);
+	fuse_opt_parse(&fargs, &config, disorderfs_fuse_opts, fuse_opt_proc);
 
 	if (bare_arguments.size() != 2) {
 		std::clog << "disorderfs: error: wrong number of arguments" << std::endl;

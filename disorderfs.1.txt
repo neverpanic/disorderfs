@@ -30,6 +30,18 @@ See fusermount(1), mount.fuse(8), and mount(8) for a full list of options.
 
 Options specific to *disorderfs*:
 
+*--shuffle-dirents=yes|no*::
+  Whether or not to randomly shuffle directory entries (default: no).
+  The directory entries are shuffled every time the directory is read,
+  so repeated reads of the same directory will probably return different
+  results.
+
+*--reverse-dirents=yes|no*::
+  Whether or not to return directory entries in reverse order (default: yes).
+
+*--pad-blocks='N'*::
+  Add 'N' to the st_blocks field in struct stat(2) (default: 1).
+
 *--help*, *-h*::
   Display help.
 
