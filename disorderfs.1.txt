@@ -49,7 +49,8 @@ within disorderfs itself, but if one process accesses the underlying
 filesystem directly, and another process accesses through disorderfs,
 they won't see each others' locks.
 
-'ROOTDIR' must be specified as an absolute path.
+'ROOTDIR' must be specified as an absolute path ('MOUNTPOINT' may be
+absolute or relative).
 
 
 AUTHOR
