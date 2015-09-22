@@ -1,3 +1,9 @@
+v0.3.0 (2015-09-22)
+  * Implement multi-user mode.
+  * Add options --shuffle-dirents, --reverse-dirents, and --pad-blocks.
+  * Bug fix: don't follow symlinks in xattr syscalls.
+  * Clarify BUGS in man page.
+
 v0.2.0 (2015-08-26)
   * Implement xattrs.
   * Require rootdir arg to be absolute path, and document in man page.
