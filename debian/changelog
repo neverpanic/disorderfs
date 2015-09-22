@@ -1,3 +1,12 @@
+disorderfs (0.3.0-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Implement multi-user mode
+    - Add options --shuffle-dirents, --reverse-dirents, and --pad-blocks
+    - Use l variants of xattr syscalls to avoid following symlinks
+
+ -- Andrew Ayer <agwa@andrewayer.name>  Tue, 22 Sep 2015 07:06:53 -0700
+
 disorderfs (0.2.0-1) unstable; urgency=medium
 
   * New upstream release:
