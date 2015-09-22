@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <attr/xattr.h>
 #include <sys/types.h>
+#include <sys/syscall.h>
 #include <stddef.h>
 
 #define DISORDERFS_VERSION "0.2.0"
@@ -43,6 +44,7 @@ namespace {
 	std::vector<std::string>	bare_arguments;
 	std::string			root;
 	struct Disorderfs_config {
+		bool			multi_user{false};
 		bool			shuffle_dirents{false};
 		bool			reverse_dirents{true};
 		unsigned int		pad_blocks{1};
@@ -51,6 +53,97 @@ namespace {
 
 	int wrap (int retval) { return retval == -1 ? -errno : 0; }
 	using Dirents = std::vector<std::string>;
+
+	int thread_seteuid (uid_t euid)
+	{
+#ifdef SYS_setresuid32
+		return syscall(SYS_setresuid32, static_cast<uid_t>(-1), euid, static_cast<uid_t>(-1));
+#else
+		return syscall(SYS_setresuid, static_cast<uid_t>(-1), euid, static_cast<uid_t>(-1));
+#endif
+	}
+	int thread_setegid (gid_t egid)
+	{
+#ifdef SYS_setresgid32
+		return syscall(SYS_setresgid32, static_cast<gid_t>(-1), egid, static_cast<gid_t>(-1));
+#else
+		return syscall(SYS_setresgid, static_cast<gid_t>(-1), egid, static_cast<gid_t>(-1));
+#endif
+	}
+	int thread_setgroups (size_t size, const gid_t* list)
+	{
+#ifdef SYS_setgroups32
+		return syscall(SYS_setgroups32, size, list);
+#else
+		return syscall(SYS_setgroups, size, list);
+#endif
+	}
+
+	std::vector<gid_t> get_fuse_groups ()
+	{
+		long				ngroups_max = sysconf(_SC_NGROUPS_MAX);
+		if (ngroups_max < 0) {
+			ngroups_max = 65536;
+		}
+		std::vector<gid_t>		groups(ngroups_max + 1);
+		int				ngroups = fuse_getgroups(groups.size(), groups.data());
+		if (ngroups < 0) {
+			std::perror("fuse_getgroups");
+			groups.clear();
+		} else if (static_cast<unsigned int>(ngroups) < groups.size()) {
+			groups.resize(ngroups);
+		}
+		return groups;
+	}
+
+	void drop_privileges ()
+	{
+		const std::vector<gid_t>	groups(get_fuse_groups());
+		if (thread_setgroups(groups.size(), groups.data()) == -1) {
+			std::perror("setgroups");
+			std::abort();
+		}
+		if (thread_setegid(fuse_get_context()->gid) == -1) {
+			std::perror("setegid");
+			std::abort();
+		}
+		if (thread_seteuid(fuse_get_context()->uid) == -1) {
+			std::perror("seteuid");
+			std::abort();
+		}
+	}
+
+	void restore_privileges ()
+	{
+		const std::vector<gid_t>	groups;
+		if (thread_seteuid(0) == -1) {
+			std::perror("seteuid()");
+			std::abort();
+		}
+		if (thread_setegid(0) == -1) {
+			std::perror("setegid(0)");
+			std::abort();
+		}
+		if (thread_setgroups(groups.size(), groups.data()) == -1) {
+			std::perror("setgroups(0)");
+			std::abort();
+		}
+	}
+
+	struct Guard {
+		Guard ()
+		{
+			if (config.multi_user) {
+				drop_privileges();
+			}
+		}
+		~Guard ()
+		{
+			if (config.multi_user) {
+				restore_privileges();
+			}
+		}
+	};
 
 	struct fuse_operations		disorderfs_fuse_operations;
 	enum {
@@ -63,6 +156,8 @@ namespace {
 		DISORDERFS_OPT("--shuffle-dirents=yes", shuffle_dirents, true),
 		DISORDERFS_OPT("--reverse-dirents=no", reverse_dirents, false),
 		DISORDERFS_OPT("--reverse-dirents=yes", reverse_dirents, true),
+		DISORDERFS_OPT("--multi-user=no", multi_user, false),
+		DISORDERFS_OPT("--multi-user=yes", multi_user, true),
 		DISORDERFS_OPT("--pad-blocks=%i", pad_blocks, 0),
 		FUSE_OPT_KEY("-h", KEY_HELP),
 		FUSE_OPT_KEY("--help", KEY_HELP),
@@ -86,6 +181,7 @@ namespace {
 			std::clog << "    --shuffle-dirents=yes|no  randomly shuffle dirents? (default: no)" << std::endl;
 			std::clog << "    --reverse-dirents=yes|no  reverse dirent order? (default: yes)" << std::endl;
 			std::clog << "    --pad-blocks=N         add N to st_blocks (default: 1)" << std::endl;
+			std::clog << "    --multi-user=yes|no    allow multiple users to access overlay (requires root; default: no)" << std::endl;
 			std::clog << std::endl;
 			fuse_opt_add_arg(outargs, "-ho");
 			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
@@ -110,6 +206,7 @@ int	main (int argc, char** argv)
 	std::memset(&disorderfs_fuse_operations, '\0', sizeof(disorderfs_fuse_operations));
 
 	disorderfs_fuse_operations.getattr = [] (const char* path, struct stat* st) -> int {
+		Guard g;
 		if (lstat((root + path).c_str(), st) == -1) {
 			return -errno;
 		}
@@ -117,6 +214,7 @@ int	main (int argc, char** argv)
 		return 0;
 	};
 	disorderfs_fuse_operations.readlink = [] (const char* path, char* buf, size_t sz) -> int {
+		Guard g;
 		const ssize_t len{readlink((root + path).c_str(), buf, sz - 1)}; // sz > 0, since it includes space for null terminator
 		if (len == -1) {
 			return -errno;
@@ -125,36 +223,47 @@ int	main (int argc, char** argv)
 		return 0;
 	};
 	disorderfs_fuse_operations.mknod = [] (const char* path, mode_t mode, dev_t dev) -> int {
+		Guard g;
 		return wrap(mknod((root + path).c_str(), mode, dev));
 	};
 	disorderfs_fuse_operations.mkdir = [] (const char* path, mode_t mode) -> int {
+		Guard g;
 		return wrap(mkdir((root + path).c_str(), mode));
 	};
 	disorderfs_fuse_operations.unlink = [] (const char* path) -> int {
+		Guard g;
 		return wrap(unlink((root + path).c_str()));
 	};
 	disorderfs_fuse_operations.rmdir = [] (const char* path) -> int {
+		Guard g;
 		return wrap(rmdir((root + path).c_str()));
 	};
 	disorderfs_fuse_operations.symlink = [] (const char* target, const char* linkpath) -> int {
+		Guard g;
 		return wrap(symlink(target, (root + linkpath).c_str()));
 	};
 	disorderfs_fuse_operations.rename = [] (const char* oldpath, const char* newpath) -> int {
+		Guard g;
 		return wrap(rename((root + oldpath).c_str(), (root + newpath).c_str()));
 	};
 	disorderfs_fuse_operations.link = [] (const char* oldpath, const char* newpath) -> int {
+		Guard g;
 		return wrap(link((root + oldpath).c_str(), (root + newpath).c_str()));
 	};
 	disorderfs_fuse_operations.chmod = [] (const char* path, mode_t mode) -> int {
+		Guard g;
 		return wrap(chmod((root + path).c_str(), mode));
 	};
 	disorderfs_fuse_operations.chown = [] (const char* path, uid_t uid, gid_t gid) -> int {
+		Guard g;
 		return wrap(lchown((root + path).c_str(), uid, gid));
 	};
 	disorderfs_fuse_operations.truncate = [] (const char* path, off_t length) -> int {
+		Guard g;
 		return wrap(truncate((root + path).c_str(), length));
 	};
 	disorderfs_fuse_operations.open = [] (const char* path, struct fuse_file_info* info) -> int {
+		Guard g;
 		const int fd{open((root + path).c_str(), info->flags)};
 		if (fd == -1) {
 			return -errno;
@@ -169,6 +278,7 @@ int	main (int argc, char** argv)
 		return pwrite(info->fh, buf, sz, off);
 	};
 	disorderfs_fuse_operations.statfs = [] (const char* path, struct statvfs* f) -> int {
+		Guard g;
 		return wrap(statvfs((root + path).c_str(), f));
 	};
 	/* TODO: flush
@@ -184,20 +294,25 @@ int	main (int argc, char** argv)
 	};
 	*/
 	disorderfs_fuse_operations.setxattr = [] (const char* path, const char* name, const char* value, size_t size, int flags) -> int {
+		Guard g;
 		return wrap(lsetxattr((root + path).c_str(), name, value, size, flags));
 	};
 	disorderfs_fuse_operations.getxattr = [] (const char* path, const char* name, char* value, size_t size) -> int {
+		Guard g;
 		ssize_t res = lgetxattr((root + path).c_str(), name, value, size);
 		return res >= 0 ? res : -errno;
 	};
 	disorderfs_fuse_operations.listxattr = [] (const char* path, char* list, size_t size) -> int {
+		Guard g;
 		ssize_t res = llistxattr((root + path).c_str(), list, size);
 		return res >= 0 ? res : -errno;
 	};
 	disorderfs_fuse_operations.removexattr = [] (const char* path, const char* name) -> int {
+		Guard g;
 		return wrap(lremovexattr((root + path).c_str(), name));
 	};
 	disorderfs_fuse_operations.opendir = [] (const char* path, struct fuse_file_info* info) -> int {
+		Guard g;
 		std::unique_ptr<Dirents> dirents{new Dirents};
 
 		DIR* d = opendir((root + path).c_str());
@@ -245,6 +360,7 @@ int	main (int argc, char** argv)
 	};
 	*/
 	disorderfs_fuse_operations.create = [] (const char* path, mode_t mode, struct fuse_file_info* info) -> int {
+		Guard g;
 		// XXX: use info->flags?
 		const int fd{open((root + path).c_str(), info->flags | O_CREAT, mode)};
 		if (fd == -1) {
@@ -270,6 +386,7 @@ int	main (int argc, char** argv)
 	};
 	*/
 	disorderfs_fuse_operations.utimens = [] (const char* path, const struct timespec tv[2]) -> int {
+		Guard g;
 		return wrap(utimensat(AT_FDCWD, (root + path).c_str(), tv, AT_SYMLINK_NOFOLLOW));
 	};
 	/* Not applicable?
@@ -316,6 +433,10 @@ int	main (int argc, char** argv)
 	// Add some of our own hard-coded FUSE options:
 	fuse_opt_add_arg(&fargs, "-o");
 	fuse_opt_add_arg(&fargs, "direct_io,atomic_o_trunc,default_permissions"); // XXX: other mount options?
+	if (config.multi_user) {
+		fuse_opt_add_arg(&fargs, "-o");
+		fuse_opt_add_arg(&fargs, "allow_other");
+	}
 	fuse_opt_add_arg(&fargs, bare_arguments[1].c_str());
 
 	return fuse_main(fargs.argc, fargs.argv, &disorderfs_fuse_operations, nullptr);
