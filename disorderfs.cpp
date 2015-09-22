@@ -152,12 +152,12 @@ namespace {
 	};
 #define DISORDERFS_OPT(t, p, v) { t, offsetof(Disorderfs_config, p), v }
 	const struct fuse_opt disorderfs_fuse_opts[] = {
+		DISORDERFS_OPT("--multi-user=no", multi_user, false),
+		DISORDERFS_OPT("--multi-user=yes", multi_user, true),
 		DISORDERFS_OPT("--shuffle-dirents=no", shuffle_dirents, false),
 		DISORDERFS_OPT("--shuffle-dirents=yes", shuffle_dirents, true),
 		DISORDERFS_OPT("--reverse-dirents=no", reverse_dirents, false),
 		DISORDERFS_OPT("--reverse-dirents=yes", reverse_dirents, true),
-		DISORDERFS_OPT("--multi-user=no", multi_user, false),
-		DISORDERFS_OPT("--multi-user=yes", multi_user, true),
 		DISORDERFS_OPT("--pad-blocks=%i", pad_blocks, 0),
 		FUSE_OPT_KEY("-h", KEY_HELP),
 		FUSE_OPT_KEY("--help", KEY_HELP),
@@ -178,10 +178,10 @@ namespace {
 			std::clog << "    -V, --version          display version info" << std::endl;
 			std::clog << std::endl;
 			std::clog << "disorderfs options:" << std::endl;
+			std::clog << "    --multi-user=yes|no    allow multiple users to access overlay (requires root; default: no)" << std::endl;
 			std::clog << "    --shuffle-dirents=yes|no  randomly shuffle dirents? (default: no)" << std::endl;
 			std::clog << "    --reverse-dirents=yes|no  reverse dirent order? (default: yes)" << std::endl;
 			std::clog << "    --pad-blocks=N         add N to st_blocks (default: 1)" << std::endl;
-			std::clog << "    --multi-user=yes|no    allow multiple users to access overlay (requires root; default: no)" << std::endl;
 			std::clog << std::endl;
 			fuse_opt_add_arg(outargs, "-ho");
 			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
