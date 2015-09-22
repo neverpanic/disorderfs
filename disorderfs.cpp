@@ -426,6 +426,7 @@ int	main (int argc, char** argv)
 	root = bare_arguments[0];
 
 	if (root[0] != '/') {
+		// TODO: support absolute paths by using *at syscalls everywhere, instead of string concatenation.
 		std::clog << "disorderfs: error: ROOTDIR is not an absolute path" << std::endl;
 		return 1;
 	}
