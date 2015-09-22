@@ -184,18 +184,18 @@ int	main (int argc, char** argv)
 	};
 	*/
 	disorderfs_fuse_operations.setxattr = [] (const char* path, const char* name, const char* value, size_t size, int flags) -> int {
-		return wrap(setxattr((root + path).c_str(), name, value, size, flags));
+		return wrap(lsetxattr((root + path).c_str(), name, value, size, flags));
 	};
 	disorderfs_fuse_operations.getxattr = [] (const char* path, const char* name, char* value, size_t size) -> int {
-		ssize_t res = getxattr((root + path).c_str(), name, value, size);
+		ssize_t res = lgetxattr((root + path).c_str(), name, value, size);
 		return res >= 0 ? res : -errno;
 	};
 	disorderfs_fuse_operations.listxattr = [] (const char* path, char* list, size_t size) -> int {
-		ssize_t res = listxattr((root + path).c_str(), list, size);
+		ssize_t res = llistxattr((root + path).c_str(), list, size);
 		return res >= 0 ? res : -errno;
 	};
 	disorderfs_fuse_operations.removexattr = [] (const char* path, const char* name) -> int {
-		return wrap(removexattr((root + path).c_str(), name));
+		return wrap(lremovexattr((root + path).c_str(), name));
 	};
 	disorderfs_fuse_operations.opendir = [] (const char* path, struct fuse_file_info* info) -> int {
 		std::unique_ptr<Dirents> dirents{new Dirents};
