@@ -244,9 +244,6 @@ int	main (int argc, char** argv)
 	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int datasync, struct fuse_file_info* info) -> int {
 	};
 	*/
-	disorderfs_fuse_operations.access = [] (const char* path, int mode) -> int {
-		return wrap(access((root + path).c_str(), mode));
-	};
 	disorderfs_fuse_operations.create = [] (const char* path, mode_t mode, struct fuse_file_info* info) -> int {
 		// XXX: use info->flags?
 		const int fd{open((root + path).c_str(), info->flags | O_CREAT, mode)};
@@ -318,7 +315,7 @@ int	main (int argc, char** argv)
 
 	// Add some of our own hard-coded FUSE options:
 	fuse_opt_add_arg(&fargs, "-o");
-	fuse_opt_add_arg(&fargs, "direct_io,atomic_o_trunc"); // XXX: other mount options?
+	fuse_opt_add_arg(&fargs, "direct_io,atomic_o_trunc,default_permissions"); // XXX: other mount options?
 	fuse_opt_add_arg(&fargs, bare_arguments[1].c_str());
 
 	return fuse_main(fargs.argc, fargs.argv, &disorderfs_fuse_operations, nullptr);
