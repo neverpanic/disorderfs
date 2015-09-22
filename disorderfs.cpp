@@ -51,9 +51,17 @@ namespace {
 	};
 	Disorderfs_config		config;
 
+	void perror_and_die (const char* s)
+	{
+		std::perror(s);
+		std::abort();
+	}
+
 	int wrap (int retval) { return retval == -1 ? -errno : 0; }
 	using Dirents = std::vector<std::string>;
 
+	// The libc versions of seteuid, etc. set the credentials for all threads.
+	// We need to set credentials for a single thread only, so call the syscalls directly.
 	int thread_seteuid (uid_t euid)
 	{
 #ifdef SYS_setresuid32
@@ -98,35 +106,35 @@ namespace {
 
 	void drop_privileges ()
 	{
+		// These functions should not fail as long as disorderfs is running as root.
+		// If they do fail, things could be in a pretty inconsistent state, so just
+		// kill the program instead of trying to gracefully recover.
 		const std::vector<gid_t>	groups(get_fuse_groups());
 		if (thread_setgroups(groups.size(), groups.data()) == -1) {
-			std::perror("setgroups");
-			std::abort();
+			perror_and_die("setgroups");
 		}
 		if (thread_setegid(fuse_get_context()->gid) == -1) {
-			std::perror("setegid");
-			std::abort();
+			perror_and_die("setegid");
 		}
 		if (thread_seteuid(fuse_get_context()->uid) == -1) {
-			std::perror("seteuid");
-			std::abort();
+			perror_and_die("seteuid");
 		}
 	}
 
 	void restore_privileges ()
 	{
+		// These functions should not fail as long as disorderfs is running as root.
+		// If they do fail, things could be in a pretty inconsistent state, so just
+		// kill the program instead of trying to gracefully recover.
 		const std::vector<gid_t>	groups;
 		if (thread_seteuid(0) == -1) {
-			std::perror("seteuid()");
-			std::abort();
+			perror_and_die("seteuid()");
 		}
 		if (thread_setegid(0) == -1) {
-			std::perror("setegid(0)");
-			std::abort();
+			perror_and_die("setegid(0)");
 		}
 		if (thread_setgroups(groups.size(), groups.data()) == -1) {
-			std::perror("setgroups(0)");
-			std::abort();
+			perror_and_die("setgroups(0)");
 		}
 	}
 
