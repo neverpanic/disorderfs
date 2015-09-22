@@ -30,6 +30,18 @@ See fusermount(1), mount.fuse(8), and mount(8) for a full list of options.
 
 Options specific to *disorderfs*:
 
+*--multi-user=yes|no*::
+  Whether or not to allow other users to access the overlay mount
+  (default: no).  When enabled, disorderfs accesses the underlying
+  file with the same credentials (user ID, group ID, supplemental
+  group list) as the process accessing the overlaid file.  This
+  is different from FUSE's *allow_other* option, which allows
+  other users access, but causes disorderfs to access the underlying
+  filesystem with the credentials of the user running disorderfs, which
+  is usually undesirable.
+  +
+  *--multi-user=yes* requires disorderfs to run as root.
+
 *--shuffle-dirents=yes|no*::
   Whether or not to randomly shuffle directory entries (default: no).
   The directory entries are shuffled every time the directory is read,
