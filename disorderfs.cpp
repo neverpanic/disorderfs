@@ -38,7 +38,7 @@
 #include <sys/syscall.h>
 #include <stddef.h>
 
-#define DISORDERFS_VERSION "0.2.0"
+#define DISORDERFS_VERSION "0.3.0"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
