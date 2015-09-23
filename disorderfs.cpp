@@ -23,6 +23,9 @@
 #include <string>
 #include <fstream>
 #include <fuse.h>
+extern "C" {
+#include <ulockmgr.h>
+}
 #include <dirent.h>
 #include <iostream>
 #include <memory>
@@ -36,6 +39,7 @@
 #include <attr/xattr.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <sys/file.h>
 #include <stddef.h>
 
 #define DISORDERFS_VERSION "0.3.0"
@@ -387,12 +391,12 @@ int	main (int argc, char** argv)
 		st->st_blocks += config.pad_blocks;
 		return 0;
 	};
-	/* TODO: locking
-	disorderfs_fuse_operations.loc = [] (const char *, struct fuse_file_info *, int cmd, struct flock *) -> int {
+	disorderfs_fuse_operations.lock = [] (const char* path, struct fuse_file_info* info, int cmd, struct flock* lock) -> int {
+		return ulockmgr_op(info->fh, cmd, lock, &info->lock_owner, sizeof(info->lock_owner));
 	};
-	disorderfs_fuse_operations.flock = [] (const char *, struct fuse_file_info *, int op) -> int {
+	disorderfs_fuse_operations.flock = [] (const char* path, struct fuse_file_info* info, int op) -> int {
+		return wrap(flock(info->fh, op));
 	};
-	*/
 	disorderfs_fuse_operations.utimens = [] (const char* path, const struct timespec tv[2]) -> int {
 		Guard g;
 		return wrap(utimensat(AT_FDCWD, (root + path).c_str(), tv, AT_SYMLINK_NOFOLLOW));
