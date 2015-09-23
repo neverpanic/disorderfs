@@ -284,10 +284,30 @@ int	main (int argc, char** argv)
 		return 0;
 	};
 	disorderfs_fuse_operations.read = [] (const char* path, char* buf, size_t sz, off_t off, struct fuse_file_info* info) -> int {
-		return pread(info->fh, buf, sz, off);
+		size_t bytes_read = 0;
+		while (bytes_read < sz) {
+			const ssize_t res = pread(info->fh, buf + bytes_read, sz - bytes_read, off + bytes_read);
+			if (res < 0) {
+				return -errno;
+			} else if (res == 0) {
+				break;
+			} else {
+				bytes_read += res;
+			}
+		}
+		return bytes_read;
 	};
 	disorderfs_fuse_operations.write = [] (const char* path, const char* buf, size_t sz, off_t off, struct fuse_file_info* info) -> int {
-		return pwrite(info->fh, buf, sz, off);
+		size_t bytes_written = 0;
+		while (bytes_written < sz) {
+			const ssize_t res = pwrite(info->fh, buf + bytes_written, sz - bytes_written, off + bytes_written);
+			if (res < 0) {
+				return -errno;
+			} else {
+				bytes_written += res;
+			}
+		}
+		return bytes_written;
 	};
 	disorderfs_fuse_operations.statfs = [] (const char* path, struct statvfs* f) -> int {
 		Guard g;
@@ -445,7 +465,7 @@ int	main (int argc, char** argv)
 
 	// Add some of our own hard-coded FUSE options:
 	fuse_opt_add_arg(&fargs, "-o");
-	fuse_opt_add_arg(&fargs, "direct_io,atomic_o_trunc,default_permissions"); // XXX: other mount options?
+	fuse_opt_add_arg(&fargs, "atomic_o_trunc,default_permissions"); // XXX: other mount options?
 	if (config.multi_user) {
 		fuse_opt_add_arg(&fargs, "-o");
 		fuse_opt_add_arg(&fargs, "allow_other");
