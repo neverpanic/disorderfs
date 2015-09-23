@@ -431,12 +431,38 @@ int	main (int argc, char** argv)
 	disorderfs_fuse_operations.poll = [] (const char *, struct fuse_file_info *, struct fuse_pollhandle *ph, unsigned *reventsp) -> int {
 	};
 	*/
-	/* TODO: implement these, for efficiency
-	disorderfs_fuse_operations.write_buf = [] (const char *, struct fuse_bufvec *buf, off_t off, struct fuse_file_info *) -> int {
+	disorderfs_fuse_operations.write_buf = [] (const char* path, struct fuse_bufvec* buf, off_t off, struct fuse_file_info* info) -> int {
+		struct fuse_bufvec dst;
+		dst.count = 1;
+		dst.idx = 0;
+		dst.off = 0;
+		dst.buf[0].size = fuse_buf_size(buf);
+		dst.buf[0].flags = static_cast<fuse_buf_flags>(FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
+		dst.buf[0].mem = nullptr;
+		dst.buf[0].fd = info->fh;
+		dst.buf[0].pos = off;
+
+		return fuse_buf_copy(&dst, buf, FUSE_BUF_SPLICE_NONBLOCK);
 	};
-	disorderfs_fuse_operations.read_buf = [] (const char *, struct fuse_bufvec **bufp, size_t size, off_t off, struct fuse_file_info *) -> int {
+	disorderfs_fuse_operations.read_buf = [] (const char* path, struct fuse_bufvec** bufp, size_t size, off_t off, struct fuse_file_info* info) -> int {
+		struct fuse_bufvec* src = static_cast<struct fuse_bufvec*>(malloc(sizeof(struct fuse_bufvec)));
+		if (src == nullptr) {
+			return -ENOMEM;
+		}
+
+		src->count = 1;
+		src->idx = 0;
+		src->off = 0;
+		src->buf[0].size = size;
+		src->buf[0].flags = static_cast<fuse_buf_flags>(FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
+		src->buf[0].mem = nullptr;
+		src->buf[0].fd = info->fh;
+		src->buf[0].pos = off;
+
+		*bufp = src;
+
+		return 0;
 	};
-	*/
 	disorderfs_fuse_operations.fallocate = [] (const char* path, int mode, off_t off, off_t len, struct fuse_file_info* info) -> int {
 		return wrap(fallocate(info->fh, mode, off, len));
 	};
