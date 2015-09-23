@@ -63,16 +63,6 @@ Options specific to *disorderfs*:
 
 BUGS
 ----
-Errors from close are not properly reported.
-
-fsync and fdatasync are not implemented (they report success but do not
-do anything).
-
-Locks are not propagated to the underlying filesystem.  Locks still work
-within disorderfs itself, but if one process accesses the underlying
-filesystem directly, and another process accesses through disorderfs,
-they won't see each others' locks.
-
 'ROOTDIR' must be specified as an absolute path ('MOUNTPOINT' may be
 absolute or relative).
 
