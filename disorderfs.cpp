@@ -313,18 +313,16 @@ int	main (int argc, char** argv)
 		Guard g;
 		return wrap(statvfs((root + path).c_str(), f));
 	};
-	/* TODO: flush
 	disorderfs_fuse_operations.flush = [] (const char* path, struct fuse_file_info* info) -> int {
+		return wrap(close(dup(info->fh)));
 	};
-	*/
 	disorderfs_fuse_operations.release = [] (const char* path, struct fuse_file_info* info) -> int {
 		close(info->fh);
 		return 0; // return value is ignored
 	};
-	/* TODO: fsync
-	disorderfs_fuse_operations.fsync = [] (const char* path, int datasync, struct fuse_file_info* info) -> int {
+	disorderfs_fuse_operations.fsync = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
+		return wrap(is_datasync ? fdatasync(info->fh) : fsync(info->fh));
 	};
-	*/
 	disorderfs_fuse_operations.setxattr = [] (const char* path, const char* name, const char* value, size_t size, int flags) -> int {
 		Guard g;
 		return wrap(lsetxattr((root + path).c_str(), name, value, size, flags));
@@ -387,10 +385,10 @@ int	main (int argc, char** argv)
 		delete reinterpret_cast<Dirents*>(info->fh);
 		return 0;
 	};
-	/* TODO: fsyncdir
-	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int datasync, struct fuse_file_info* info) -> int {
+	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
+		// XXX: is it OK to just use fsync?  Not clear on why FUSE has a separate fsyncdir operation
+		return wrap(is_datasync ? fdatasync(info->fh) : fsync(info->fh));
 	};
-	*/
 	disorderfs_fuse_operations.create = [] (const char* path, mode_t mode, struct fuse_file_info* info) -> int {
 		Guard g;
 		// XXX: use info->flags?
