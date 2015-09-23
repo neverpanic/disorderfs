@@ -1,3 +1,14 @@
+disorderfs (0.4.0-1) unstable; urgency=low
+
+  * New upstream release:
+    - Propagate locks to underlying filesystem
+    - Drop direct_io option (Closes: #799866)
+    - Implement flush, fsync, and fsyncdir
+    - Implement read_buf and write_buf for more efficient I/O
+    - Remove most of the BUGS from the man page since they're fixed :-)
+
+ -- Andrew Ayer <agwa@andrewayer.name>  Wed, 23 Sep 2015 09:21:52 -0700
+
 disorderfs (0.3.0-1) unstable; urgency=medium
 
   * New upstream release:
