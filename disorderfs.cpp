@@ -23,6 +23,9 @@
 #include <string>
 #include <fstream>
 #include <fuse.h>
+extern "C" {
+#include <ulockmgr.h>
+}
 #include <dirent.h>
 #include <iostream>
 #include <memory>
@@ -36,9 +39,10 @@
 #include <attr/xattr.h>
 #include <sys/types.h>
 #include <sys/syscall.h>
+#include <sys/file.h>
 #include <stddef.h>
 
-#define DISORDERFS_VERSION "0.3.0"
+#define DISORDERFS_VERSION "0.4.0"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
@@ -280,27 +284,45 @@ int	main (int argc, char** argv)
 		return 0;
 	};
 	disorderfs_fuse_operations.read = [] (const char* path, char* buf, size_t sz, off_t off, struct fuse_file_info* info) -> int {
-		return pread(info->fh, buf, sz, off);
+		size_t bytes_read = 0;
+		while (bytes_read < sz) {
+			const ssize_t res = pread(info->fh, buf + bytes_read, sz - bytes_read, off + bytes_read);
+			if (res < 0) {
+				return -errno;
+			} else if (res == 0) {
+				break;
+			} else {
+				bytes_read += res;
+			}
+		}
+		return bytes_read;
 	};
 	disorderfs_fuse_operations.write = [] (const char* path, const char* buf, size_t sz, off_t off, struct fuse_file_info* info) -> int {
-		return pwrite(info->fh, buf, sz, off);
+		size_t bytes_written = 0;
+		while (bytes_written < sz) {
+			const ssize_t res = pwrite(info->fh, buf + bytes_written, sz - bytes_written, off + bytes_written);
+			if (res < 0) {
+				return -errno;
+			} else {
+				bytes_written += res;
+			}
+		}
+		return bytes_written;
 	};
 	disorderfs_fuse_operations.statfs = [] (const char* path, struct statvfs* f) -> int {
 		Guard g;
 		return wrap(statvfs((root + path).c_str(), f));
 	};
-	/* TODO: flush
 	disorderfs_fuse_operations.flush = [] (const char* path, struct fuse_file_info* info) -> int {
+		return wrap(close(dup(info->fh)));
 	};
-	*/
 	disorderfs_fuse_operations.release = [] (const char* path, struct fuse_file_info* info) -> int {
 		close(info->fh);
 		return 0; // return value is ignored
 	};
-	/* TODO: fsync
-	disorderfs_fuse_operations.fsync = [] (const char* path, int datasync, struct fuse_file_info* info) -> int {
+	disorderfs_fuse_operations.fsync = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
+		return wrap(is_datasync ? fdatasync(info->fh) : fsync(info->fh));
 	};
-	*/
 	disorderfs_fuse_operations.setxattr = [] (const char* path, const char* name, const char* value, size_t size, int flags) -> int {
 		Guard g;
 		return wrap(lsetxattr((root + path).c_str(), name, value, size, flags));
@@ -363,10 +385,10 @@ int	main (int argc, char** argv)
 		delete reinterpret_cast<Dirents*>(info->fh);
 		return 0;
 	};
-	/* TODO: fsyncdir
-	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int datasync, struct fuse_file_info* info) -> int {
+	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
+		// XXX: is it OK to just use fsync?  Not clear on why FUSE has a separate fsyncdir operation
+		return wrap(is_datasync ? fdatasync(info->fh) : fsync(info->fh));
 	};
-	*/
 	disorderfs_fuse_operations.create = [] (const char* path, mode_t mode, struct fuse_file_info* info) -> int {
 		Guard g;
 		// XXX: use info->flags?
@@ -387,12 +409,12 @@ int	main (int argc, char** argv)
 		st->st_blocks += config.pad_blocks;
 		return 0;
 	};
-	/* TODO: locking
-	disorderfs_fuse_operations.loc = [] (const char *, struct fuse_file_info *, int cmd, struct flock *) -> int {
+	disorderfs_fuse_operations.lock = [] (const char* path, struct fuse_file_info* info, int cmd, struct flock* lock) -> int {
+		return ulockmgr_op(info->fh, cmd, lock, &info->lock_owner, sizeof(info->lock_owner));
 	};
-	disorderfs_fuse_operations.flock = [] (const char *, struct fuse_file_info *, int op) -> int {
+	disorderfs_fuse_operations.flock = [] (const char* path, struct fuse_file_info* info, int op) -> int {
+		return wrap(flock(info->fh, op));
 	};
-	*/
 	disorderfs_fuse_operations.utimens = [] (const char* path, const struct timespec tv[2]) -> int {
 		Guard g;
 		return wrap(utimensat(AT_FDCWD, (root + path).c_str(), tv, AT_SYMLINK_NOFOLLOW));
@@ -409,12 +431,38 @@ int	main (int argc, char** argv)
 	disorderfs_fuse_operations.poll = [] (const char *, struct fuse_file_info *, struct fuse_pollhandle *ph, unsigned *reventsp) -> int {
 	};
 	*/
-	/* TODO: implement these, for efficiency
-	disorderfs_fuse_operations.write_buf = [] (const char *, struct fuse_bufvec *buf, off_t off, struct fuse_file_info *) -> int {
+	disorderfs_fuse_operations.write_buf = [] (const char* path, struct fuse_bufvec* buf, off_t off, struct fuse_file_info* info) -> int {
+		struct fuse_bufvec dst;
+		dst.count = 1;
+		dst.idx = 0;
+		dst.off = 0;
+		dst.buf[0].size = fuse_buf_size(buf);
+		dst.buf[0].flags = static_cast<fuse_buf_flags>(FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
+		dst.buf[0].mem = nullptr;
+		dst.buf[0].fd = info->fh;
+		dst.buf[0].pos = off;
+
+		return fuse_buf_copy(&dst, buf, FUSE_BUF_SPLICE_NONBLOCK);
 	};
-	disorderfs_fuse_operations.read_buf = [] (const char *, struct fuse_bufvec **bufp, size_t size, off_t off, struct fuse_file_info *) -> int {
+	disorderfs_fuse_operations.read_buf = [] (const char* path, struct fuse_bufvec** bufp, size_t size, off_t off, struct fuse_file_info* info) -> int {
+		struct fuse_bufvec* src = static_cast<struct fuse_bufvec*>(malloc(sizeof(struct fuse_bufvec)));
+		if (src == nullptr) {
+			return -ENOMEM;
+		}
+
+		src->count = 1;
+		src->idx = 0;
+		src->off = 0;
+		src->buf[0].size = size;
+		src->buf[0].flags = static_cast<fuse_buf_flags>(FUSE_BUF_IS_FD | FUSE_BUF_FD_SEEK);
+		src->buf[0].mem = nullptr;
+		src->buf[0].fd = info->fh;
+		src->buf[0].pos = off;
+
+		*bufp = src;
+
+		return 0;
 	};
-	*/
 	disorderfs_fuse_operations.fallocate = [] (const char* path, int mode, off_t off, off_t len, struct fuse_file_info* info) -> int {
 		return wrap(fallocate(info->fh, mode, off, len));
 	};
@@ -441,7 +489,7 @@ int	main (int argc, char** argv)
 
 	// Add some of our own hard-coded FUSE options:
 	fuse_opt_add_arg(&fargs, "-o");
-	fuse_opt_add_arg(&fargs, "direct_io,atomic_o_trunc,default_permissions"); // XXX: other mount options?
+	fuse_opt_add_arg(&fargs, "atomic_o_trunc,default_permissions"); // XXX: other mount options?
 	if (config.multi_user) {
 		fuse_opt_add_arg(&fargs, "-o");
 		fuse_opt_add_arg(&fargs, "allow_other");

@@ -1,3 +1,9 @@
+v0.4.0 (2015-09-23)
+  * Make mmap with MAP_SHARED work.
+  * Propagate locks to underlying filesystem.
+  * Implement flush, fsync, and fsyncdir operations.
+  * Support more efficient I/O.
+
 v0.3.0 (2015-09-22)
   * Implement multi-user mode.
   * Add options --shuffle-dirents, --reverse-dirents, and --pad-blocks.
