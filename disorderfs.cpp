@@ -49,10 +49,10 @@ namespace {
 	std::string			root;
 	struct Disorderfs_config {
 		bool			multi_user{false};
-		bool			propagate_locks{false};
 		bool			shuffle_dirents{false};
 		bool			reverse_dirents{true};
 		unsigned int		pad_blocks{1};
+		bool			share_locks{false};
 	};
 	Disorderfs_config		config;
 
@@ -167,13 +167,13 @@ namespace {
 	const struct fuse_opt disorderfs_fuse_opts[] = {
 		DISORDERFS_OPT("--multi-user=no", multi_user, false),
 		DISORDERFS_OPT("--multi-user=yes", multi_user, true),
-		DISORDERFS_OPT("--propagate-locks=no", propagate_locks, false),
-		DISORDERFS_OPT("--propagate-locks=yes", propagate_locks, true),
 		DISORDERFS_OPT("--shuffle-dirents=no", shuffle_dirents, false),
 		DISORDERFS_OPT("--shuffle-dirents=yes", shuffle_dirents, true),
 		DISORDERFS_OPT("--reverse-dirents=no", reverse_dirents, false),
 		DISORDERFS_OPT("--reverse-dirents=yes", reverse_dirents, true),
 		DISORDERFS_OPT("--pad-blocks=%i", pad_blocks, 0),
+		DISORDERFS_OPT("--share-locks=no", share_locks, false),
+		DISORDERFS_OPT("--share-locks=yes", share_locks, true),
 		FUSE_OPT_KEY("-h", KEY_HELP),
 		FUSE_OPT_KEY("--help", KEY_HELP),
 		FUSE_OPT_KEY("-V", KEY_VERSION),
@@ -194,10 +194,10 @@ namespace {
 			std::clog << std::endl;
 			std::clog << "disorderfs options:" << std::endl;
 			std::clog << "    --multi-user=yes|no    allow multiple users to access overlay (requires root; default: no)" << std::endl;
-			std::clog << "    --propagate-locks=yes|no  propagate locks to underlying FS (BUGGY; default: no)" << std::endl;
 			std::clog << "    --shuffle-dirents=yes|no  randomly shuffle dirents? (default: no)" << std::endl;
 			std::clog << "    --reverse-dirents=yes|no  reverse dirent order? (default: yes)" << std::endl;
 			std::clog << "    --pad-blocks=N         add N to st_blocks (default: 1)" << std::endl;
+			std::clog << "    --share-locks=yes|no   share locks with underlying filesystem (BUGGY; default: no)" << std::endl;
 			std::clog << std::endl;
 			fuse_opt_add_arg(outargs, "-ho");
 			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
@@ -441,7 +441,7 @@ int	main (int argc, char** argv)
 		st->st_blocks += config.pad_blocks;
 		return 0;
 	};
-	if (config.propagate_locks) {
+	if (config.share_locks) {
 		disorderfs_fuse_operations.lock = [] (const char* path, struct fuse_file_info* info, int cmd, struct flock* lock) -> int {
 			return ulockmgr_op(info->fh, cmd, lock, &info->lock_owner, sizeof(info->lock_owner));
 		};
