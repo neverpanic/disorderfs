@@ -54,6 +54,16 @@ Options specific to *disorderfs*:
 *--pad-blocks='N'*::
   Add 'N' to the st_blocks field in struct stat(2) (default: 1).
 
+*--share-locks=yes|no*::
+  Whether or not to share locks between disorderfs and the underlying
+  filesystem (default: no).  When this option is enabled, locks created on the
+  underlying filesystem are visible within disorderfs, and vice-versa.
+  When this option is disabled, locks still work within disorderfs, but
+  if one process accesses the underlying filesystem directly, and another
+  process accesses through disorderfs, they won't see each others' locks.
+  +
+  Lock sharing is currently buggy, so it is disabled by default.
+
 *--help*, *-h*::
   Display help.
 
@@ -65,6 +75,9 @@ BUGS
 ----
 'ROOTDIR' must be specified as an absolute path ('MOUNTPOINT' may be
 absolute or relative).
+
+*--share-locks=yes* is currently buggy: programs may report that a
+file is locked when it really isn't.
 
 
 AUTHOR
