@@ -42,7 +42,7 @@ extern "C" {
 #include <sys/file.h>
 #include <stddef.h>
 
-#define DISORDERFS_VERSION "0.4.0"
+#define DISORDERFS_VERSION "0.4.1"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
@@ -52,6 +52,7 @@ namespace {
 		bool			shuffle_dirents{false};
 		bool			reverse_dirents{true};
 		unsigned int		pad_blocks{1};
+		bool			share_locks{false};
 	};
 	Disorderfs_config		config;
 
@@ -171,6 +172,8 @@ namespace {
 		DISORDERFS_OPT("--reverse-dirents=no", reverse_dirents, false),
 		DISORDERFS_OPT("--reverse-dirents=yes", reverse_dirents, true),
 		DISORDERFS_OPT("--pad-blocks=%i", pad_blocks, 0),
+		DISORDERFS_OPT("--share-locks=no", share_locks, false),
+		DISORDERFS_OPT("--share-locks=yes", share_locks, true),
 		FUSE_OPT_KEY("-h", KEY_HELP),
 		FUSE_OPT_KEY("--help", KEY_HELP),
 		FUSE_OPT_KEY("-V", KEY_VERSION),
@@ -194,6 +197,7 @@ namespace {
 			std::clog << "    --shuffle-dirents=yes|no  randomly shuffle dirents? (default: no)" << std::endl;
 			std::clog << "    --reverse-dirents=yes|no  reverse dirent order? (default: yes)" << std::endl;
 			std::clog << "    --pad-blocks=N         add N to st_blocks (default: 1)" << std::endl;
+			std::clog << "    --share-locks=yes|no   share locks with underlying filesystem (BUGGY; default: no)" << std::endl;
 			std::clog << std::endl;
 			fuse_opt_add_arg(outargs, "-ho");
 			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
@@ -213,9 +217,37 @@ int	main (int argc, char** argv)
 	signal(SIGPIPE, SIG_IGN);
 
 	/*
+	 * Parse command line options
+	 */
+	struct fuse_args	fargs = FUSE_ARGS_INIT(argc, argv);
+	fuse_opt_parse(&fargs, &config, disorderfs_fuse_opts, fuse_opt_proc);
+
+	if (bare_arguments.size() != 2) {
+		std::clog << "disorderfs: error: wrong number of arguments" << std::endl;
+		std::clog << "Usage: disorderfs [OPTIONS] ROOTDIR MOUNTPOINT" << std::endl;
+		return 2;
+	}
+
+	root = bare_arguments[0];
+
+	if (root[0] != '/') {
+		// TODO: support absolute paths by using *at syscalls everywhere, instead of string concatenation.
+		std::clog << "disorderfs: error: ROOTDIR is not an absolute path" << std::endl;
+		return 1;
+	}
+
+	// Add some of our own hard-coded FUSE options:
+	fuse_opt_add_arg(&fargs, "-o");
+	fuse_opt_add_arg(&fargs, "atomic_o_trunc,default_permissions"); // XXX: other mount options?
+	if (config.multi_user) {
+		fuse_opt_add_arg(&fargs, "-o");
+		fuse_opt_add_arg(&fargs, "allow_other");
+	}
+	fuse_opt_add_arg(&fargs, bare_arguments[1].c_str());
+
+	/*
 	 * Initialize disorderfs_fuse_operations
 	 */
-	std::memset(&disorderfs_fuse_operations, '\0', sizeof(disorderfs_fuse_operations));
 
 	disorderfs_fuse_operations.getattr = [] (const char* path, struct stat* st) -> int {
 		Guard g;
@@ -409,12 +441,14 @@ int	main (int argc, char** argv)
 		st->st_blocks += config.pad_blocks;
 		return 0;
 	};
-	disorderfs_fuse_operations.lock = [] (const char* path, struct fuse_file_info* info, int cmd, struct flock* lock) -> int {
-		return ulockmgr_op(info->fh, cmd, lock, &info->lock_owner, sizeof(info->lock_owner));
-	};
-	disorderfs_fuse_operations.flock = [] (const char* path, struct fuse_file_info* info, int op) -> int {
-		return wrap(flock(info->fh, op));
-	};
+	if (config.share_locks) {
+		disorderfs_fuse_operations.lock = [] (const char* path, struct fuse_file_info* info, int cmd, struct flock* lock) -> int {
+			return ulockmgr_op(info->fh, cmd, lock, &info->lock_owner, sizeof(info->lock_owner));
+		};
+		disorderfs_fuse_operations.flock = [] (const char* path, struct fuse_file_info* info, int op) -> int {
+			return wrap(flock(info->fh, op));
+		};
+	}
 	disorderfs_fuse_operations.utimens = [] (const char* path, const struct timespec tv[2]) -> int {
 		Guard g;
 		return wrap(utimensat(AT_FDCWD, (root + path).c_str(), tv, AT_SYMLINK_NOFOLLOW));
@@ -466,35 +500,6 @@ int	main (int argc, char** argv)
 	disorderfs_fuse_operations.fallocate = [] (const char* path, int mode, off_t off, off_t len, struct fuse_file_info* info) -> int {
 		return wrap(fallocate(info->fh, mode, off, len));
 	};
-
-	/*
-	 * Parse command line options
-	 */
-	struct fuse_args	fargs = FUSE_ARGS_INIT(argc, argv);
-	fuse_opt_parse(&fargs, &config, disorderfs_fuse_opts, fuse_opt_proc);
-
-	if (bare_arguments.size() != 2) {
-		std::clog << "disorderfs: error: wrong number of arguments" << std::endl;
-		std::clog << "Usage: disorderfs [OPTIONS] ROOTDIR MOUNTPOINT" << std::endl;
-		return 2;
-	}
-
-	root = bare_arguments[0];
-
-	if (root[0] != '/') {
-		// TODO: support absolute paths by using *at syscalls everywhere, instead of string concatenation.
-		std::clog << "disorderfs: error: ROOTDIR is not an absolute path" << std::endl;
-		return 1;
-	}
-
-	// Add some of our own hard-coded FUSE options:
-	fuse_opt_add_arg(&fargs, "-o");
-	fuse_opt_add_arg(&fargs, "atomic_o_trunc,default_permissions"); // XXX: other mount options?
-	if (config.multi_user) {
-		fuse_opt_add_arg(&fargs, "-o");
-		fuse_opt_add_arg(&fargs, "allow_other");
-	}
-	fuse_opt_add_arg(&fargs, bare_arguments[1].c_str());
 
 	return fuse_main(fargs.argc, fargs.argv, &disorderfs_fuse_operations, nullptr);
 }
