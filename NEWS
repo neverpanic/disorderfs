@@ -1,3 +1,7 @@
+v0.4.1 (2015-10-17)
+  * Disable lock sharing/propagation by default, due to bugs
+    (re-enable with --propagate-locks=yes option).
+
 v0.4.0 (2015-09-23)
   * Make mmap with MAP_SHARED work.
   * Propagate locks to underlying filesystem.
