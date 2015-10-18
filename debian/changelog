@@ -1,3 +1,11 @@
+disorderfs (0.4.1-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Only propagate locks if --share-locks=yes is provided
+      (Closes: #800063)
+
+ -- Andrew Ayer <agwa@andrewayer.name>  Sat, 17 Oct 2015 19:53:36 -0700
+
 disorderfs (0.4.0-1) unstable; urgency=low
 
   * New upstream release:
