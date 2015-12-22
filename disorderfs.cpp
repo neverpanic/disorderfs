@@ -48,11 +48,13 @@ namespace {
 	std::vector<std::string>	bare_arguments;
 	std::string			root;
 	struct Disorderfs_config {
-		bool			multi_user{false};
-		bool			shuffle_dirents{false};
-		bool			reverse_dirents{true};
-		unsigned int		pad_blocks{1};
-		bool			share_locks{false};
+		// ATTENTION! Members of this struct MUST be ints, even the booleans, because
+		// that's what fuse_opt_parse expects.  Take heed or you will get memory corruption!
+		int			multi_user{0};
+		int			shuffle_dirents{0};
+		int			reverse_dirents{1};
+		int			pad_blocks{1};
+		int			share_locks{0};
 	};
 	Disorderfs_config		config;
 
