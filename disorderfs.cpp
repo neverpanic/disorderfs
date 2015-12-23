@@ -42,7 +42,7 @@ extern "C" {
 #include <sys/file.h>
 #include <stddef.h>
 
-#define DISORDERFS_VERSION "0.4.1"
+#define DISORDERFS_VERSION "0.4.2"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
