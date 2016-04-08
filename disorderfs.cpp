@@ -160,6 +160,22 @@ namespace {
 		}
 	};
 
+	template<class T> void set_fuse_data (struct fuse_file_info* fi, T data)
+	{
+		static_assert(sizeof(data) <= sizeof(fi->fh),
+			      "fuse_file_info::fh too small to store data");
+		std::memcpy(&fi->fh, &data, sizeof(data));
+	}
+
+	template<class T> T get_fuse_data (struct fuse_file_info* fi)
+	{
+		T data;
+		static_assert(sizeof(data) <= sizeof(fi->fh),
+			      "fuse_file_info::fh too small to store data");
+		std::memcpy(&data, &fi->fh, sizeof(data));
+		return data;
+	}
+
 	struct fuse_operations		disorderfs_fuse_operations;
 	enum {
 		KEY_HELP,
@@ -397,11 +413,11 @@ int	main (int argc, char** argv)
 			return -res;
 		}
 
-		info->fh = reinterpret_cast<uint64_t>(dirents.release());
+		set_fuse_data<Dirents*>(info, dirents.release());
 		return 0;
 	};
 	disorderfs_fuse_operations.readdir = [] (const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
-		Dirents&		dirents = *reinterpret_cast<Dirents*>(info->fh);
+		Dirents&		dirents = *get_fuse_data<Dirents*>(info);
 		if (config.shuffle_dirents) {
 			std::random_device	rd;
 			std::mt19937		g(rd());
@@ -416,7 +432,7 @@ int	main (int argc, char** argv)
 		return 0;
 	};
 	disorderfs_fuse_operations.releasedir = [] (const char* path, struct fuse_file_info* info) -> int {
-		delete reinterpret_cast<Dirents*>(info->fh);
+		delete get_fuse_data<Dirents*>(info);
 		return 0;
 	};
 	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
