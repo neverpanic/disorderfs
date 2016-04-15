@@ -218,12 +218,12 @@ namespace {
 			std::clog << "    --share-locks=yes|no   share locks with underlying filesystem (BUGGY; default: no)" << std::endl;
 			std::clog << std::endl;
 			fuse_opt_add_arg(outargs, "-ho");
-			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
+			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, nullptr);
 			std::exit(0);
 		} else if (key == KEY_VERSION) {
 			std::cout << "disorderfs version: " DISORDERFS_VERSION << std::endl;
 			fuse_opt_add_arg(outargs, "--version");
-			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
+			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, nullptr);
 			std::exit(0);
 		}
 		return 1;
