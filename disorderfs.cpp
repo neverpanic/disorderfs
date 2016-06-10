@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Andrew Ayer
+ * Copyright 2015, 2016 Andrew Ayer
  *
  * This file is part of disorderfs.
  *
@@ -42,7 +42,7 @@ extern "C" {
 #include <sys/file.h>
 #include <stddef.h>
 
-#define DISORDERFS_VERSION "0.4.2"
+#define DISORDERFS_VERSION "0.4.3"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
