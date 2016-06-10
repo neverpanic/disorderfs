@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Andrew Ayer
+ * Copyright 2015, 2016 Andrew Ayer
  *
  * This file is part of disorderfs.
  *
@@ -42,7 +42,7 @@ extern "C" {
 #include <sys/file.h>
 #include <stddef.h>
 
-#define DISORDERFS_VERSION "0.4.2"
+#define DISORDERFS_VERSION "0.4.3"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
@@ -160,6 +160,22 @@ namespace {
 		}
 	};
 
+	template<class T> void set_fuse_data (struct fuse_file_info* fi, T data)
+	{
+		static_assert(sizeof(data) <= sizeof(fi->fh),
+			      "fuse_file_info::fh too small to store data");
+		std::memcpy(&fi->fh, &data, sizeof(data));
+	}
+
+	template<class T> T get_fuse_data (struct fuse_file_info* fi)
+	{
+		T data;
+		static_assert(sizeof(data) <= sizeof(fi->fh),
+			      "fuse_file_info::fh too small to store data");
+		std::memcpy(&data, &fi->fh, sizeof(data));
+		return data;
+	}
+
 	struct fuse_operations		disorderfs_fuse_operations;
 	enum {
 		KEY_HELP,
@@ -202,12 +218,12 @@ namespace {
 			std::clog << "    --share-locks=yes|no   share locks with underlying filesystem (BUGGY; default: no)" << std::endl;
 			std::clog << std::endl;
 			fuse_opt_add_arg(outargs, "-ho");
-			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
+			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, nullptr);
 			std::exit(0);
 		} else if (key == KEY_VERSION) {
 			std::cout << "disorderfs version: " DISORDERFS_VERSION << std::endl;
 			fuse_opt_add_arg(outargs, "--version");
-			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, NULL);
+			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, nullptr);
 			std::exit(0);
 		}
 		return 1;
@@ -217,6 +233,7 @@ namespace {
 int	main (int argc, char** argv)
 {
 	signal(SIGPIPE, SIG_IGN);
+	umask(0);
 
 	/*
 	 * Parse command line options
@@ -397,11 +414,11 @@ int	main (int argc, char** argv)
 			return -res;
 		}
 
-		info->fh = reinterpret_cast<uint64_t>(dirents.release());
+		set_fuse_data<Dirents*>(info, dirents.release());
 		return 0;
 	};
 	disorderfs_fuse_operations.readdir = [] (const char* path, void* buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info* info) {
-		Dirents&		dirents = *reinterpret_cast<Dirents*>(info->fh);
+		Dirents&		dirents = *get_fuse_data<Dirents*>(info);
 		if (config.shuffle_dirents) {
 			std::random_device	rd;
 			std::mt19937		g(rd());
@@ -416,7 +433,7 @@ int	main (int argc, char** argv)
 		return 0;
 	};
 	disorderfs_fuse_operations.releasedir = [] (const char* path, struct fuse_file_info* info) -> int {
-		delete reinterpret_cast<Dirents*>(info->fh);
+		delete get_fuse_data<Dirents*>(info);
 		return 0;
 	};
 	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
