@@ -1,3 +1,11 @@
+disorderfs (0.4.3-1) unstable; urgency=medium
+
+  * New upstream release:
+    - Clear umask so files are created with correct permissions
+      (Closes: #826891)
+
+ -- Andrew Ayer <agwa@andrewayer.name>  Thu, 09 Jun 2016 20:44:03 -0700
+
 disorderfs (0.4.2-1) unstable; urgency=medium
 
   * New upstream release:
