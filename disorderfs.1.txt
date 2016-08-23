@@ -51,6 +51,12 @@ Options specific to *disorderfs*:
 *--reverse-dirents=yes|no*::
   Whether or not to return directory entries in reverse order (default: yes).
 
+*--sort-dirents=yes|no*::
+  Whether or not to return directory entries in sorted order (default: no).
+  +
+  Note that you need to explictly override the default *--reverse-dirents=no*
+  to get results in expected order.
+
 *--pad-blocks='N'*::
   Add 'N' to the st_blocks field in struct stat(2) (default: 1).
 

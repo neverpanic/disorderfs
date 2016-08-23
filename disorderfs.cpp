@@ -53,6 +53,7 @@ namespace {
 		int			multi_user{0};
 		int			shuffle_dirents{0};
 		int			reverse_dirents{1};
+		int			sort_dirents{0};
 		int			pad_blocks{1};
 		int			share_locks{0};
 	};
@@ -189,6 +190,8 @@ namespace {
 		DISORDERFS_OPT("--shuffle-dirents=yes", shuffle_dirents, true),
 		DISORDERFS_OPT("--reverse-dirents=no", reverse_dirents, false),
 		DISORDERFS_OPT("--reverse-dirents=yes", reverse_dirents, true),
+		DISORDERFS_OPT("--sort-dirents=no", sort_dirents, false),
+		DISORDERFS_OPT("--sort-dirents=yes", sort_dirents, true),
 		DISORDERFS_OPT("--pad-blocks=%i", pad_blocks, 0),
 		DISORDERFS_OPT("--share-locks=no", share_locks, false),
 		DISORDERFS_OPT("--share-locks=yes", share_locks, true),
@@ -214,6 +217,7 @@ namespace {
 			std::clog << "    --multi-user=yes|no    allow multiple users to access overlay (requires root; default: no)" << std::endl;
 			std::clog << "    --shuffle-dirents=yes|no  randomly shuffle dirents? (default: no)" << std::endl;
 			std::clog << "    --reverse-dirents=yes|no  reverse dirent order? (default: yes)" << std::endl;
+			std::clog << "    --sort-dirents=yes|no  sort dirents deterministically instead (default: no)" << std::endl;
 			std::clog << "    --pad-blocks=N         add N to st_blocks (default: 1)" << std::endl;
 			std::clog << "    --share-locks=yes|no   share locks with underlying filesystem (BUGGY; default: no)" << std::endl;
 			std::clog << std::endl;
@@ -405,6 +409,9 @@ int	main (int argc, char** argv)
 		int		res;
 		while ((res = readdir_r(d, &dirent_storage, &dirent_p)) == 0 && dirent_p) {
 			dirents->emplace_back(dirent_p->d_name);
+		}
+		if (config.sort_dirents) {
+			std::sort(dirents->begin(), dirents->end());
 		}
 		if (config.reverse_dirents) {
 			std::reverse(dirents->begin(), dirents->end());
