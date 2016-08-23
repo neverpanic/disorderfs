@@ -93,7 +93,14 @@ install-man: build-man
 	install -d $(DESTDIR)$(MANDIR)/man1
 	install -m 644 disorderfs.1 $(DESTDIR)$(MANDIR)/man1/
 
+#
+# Test
+#
+test: build
+	cd tests && run-parts --verbose .
+
 .PHONY: all \
 	build build-bin build-man \
 	clean clean-bin clean-man \
-	install install-bin install-man
+	install install-bin install-man \
+	test

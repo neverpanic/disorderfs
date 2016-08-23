@@ -1,0 +1,22 @@
+trap "Unmount 2>/dev/null" EXIT
+
+Mount () {
+	Unmount
+	mkdir -p target
+	../disorderfs "${@}" "$(pwd)/fixtures/" target/
+}
+
+Unmount () {
+	fusermount -u target/ 2>/dev/null && rm -rf target/
+}
+
+Expect () {
+	ENTRIES="$(find target -type f -printf %f)"
+	EXPECTED="${1}"
+
+	if [ "${ENTRIES}" != "${EXPECTED}" ]
+	then
+		echo "E: saw ${ENTRIES}, expected ${EXPECTED}"
+		exit 1
+	fi
+}
