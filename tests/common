@@ -10,13 +10,17 @@ Unmount () {
 	fusermount -u target/ 2>/dev/null && rm -rf target/
 }
 
+Get_entries () {
+	find target -type f -printf %f
+}
+
 Fail () {
 	echo "E: ${*}"
 	exit 1
 }
 
 Expect () {
-	ENTRIES="$(find target -type f -printf %f)"
+	ENTRIES="$(Get_entries)"
 	EXPECTED="${1}"
 
 	if [ "${ENTRIES}" != "${EXPECTED}" ]
