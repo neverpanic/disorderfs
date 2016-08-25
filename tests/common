@@ -10,13 +10,17 @@ Unmount () {
 	fusermount -u target/ 2>/dev/null && rm -rf target/
 }
 
+Fail () {
+	echo "E: ${*}"
+	exit 1
+}
+
 Expect () {
 	ENTRIES="$(find target -type f -printf %f)"
 	EXPECTED="${1}"
 
 	if [ "${ENTRIES}" != "${EXPECTED}" ]
 	then
-		echo "E: saw ${ENTRIES}, expected ${EXPECTED}"
-		exit 1
+		Fail "saw ${ENTRIES}, expected ${EXPECTED}"
 	fi
 }
