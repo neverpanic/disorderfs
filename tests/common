@@ -3,7 +3,7 @@ trap "Unmount 2>/dev/null" EXIT
 Mount () {
 	Unmount
 	mkdir -p target
-	../disorderfs "${@}" fixtures/ target/
+	../disorderfs "${@}" fixtures/ target/ >/dev/null
 }
 
 Unmount () {

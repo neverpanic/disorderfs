@@ -262,6 +262,16 @@ int	main (int argc, char** argv)
 	}
 	fuse_opt_add_arg(&fargs, bare_arguments[1].c_str());
 
+	if (config.shuffle_dirents) {
+		std::cout << "disorderfs: shuffling dirents" << std::endl;
+	}
+	if (config.reverse_dirents) {
+		std::cout << "disorderfs: reversing dirents" << std::endl;
+	}
+	if (config.sort_dirents) {
+		std::cout << "disorderfs: sorting dirents" << std::endl;
+	}
+
 	/*
 	 * Initialize disorderfs_fuse_operations
 	 */
