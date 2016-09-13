@@ -251,7 +251,13 @@ int	main (int argc, char** argv)
 		return 2;
 	}
 
-	root = realpath(bare_arguments[0].c_str(), NULL);
+	if (char* resolved_path = realpath(bare_arguments[0].c_str(), nullptr)) {
+		root = resolved_path;
+		std::free(resolved_path);
+	} else {
+		std::perror(bare_arguments[0].c_str());
+		return 1;
+	}
 
 	// Add some of our own hard-coded FUSE options:
 	fuse_opt_add_arg(&fargs, "-o");
