@@ -6,12 +6,16 @@ disorderfs (0.5.1-1) unstable; urgency=medium
   * Print the behaviour on startup to stdout (Closes: #837689)
   * Add testsuite, but do not run in Debian package build due to lack of
     reliable FUSE on buildds.
+  * debian/control:
+    - Bump Standards-Version to 3.9.8.
+    - Add Homepage field.
+    - Add myself to Uploaders.
 
   [ Andrew Ayer ]
   * Fix resolution of ROOTDIR
   * Update man page: absolute path no longer required for ROOTDIR
 
- -- Chris Lamb <lamby@debian.org>  Tue, 13 Sep 2016 23:06:18 +0100
+ -- Chris Lamb <lamby@debian.org>  Tue, 13 Sep 2016 23:11:02 +0100
 
 disorderfs (0.4.3-1) unstable; urgency=medium
 
