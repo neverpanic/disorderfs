@@ -5,3 +5,6 @@ export ENABLE_MAN=yes
 
 %:
 	dh $@
+
+override_dh_auto_test:
+	# Tests require working FUSE setup
