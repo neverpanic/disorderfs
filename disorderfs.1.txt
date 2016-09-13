@@ -20,8 +20,8 @@ into filesystem metadata.  For example, it can randomize the order
 in which directory entries are read.  This is useful for detecting
 non-determinism in the build process.
 
-'ROOTDIR' is the absolute path to the underlying directory that is to
-be mirrored, and 'MOUNTPOINT' is where the overlay should be mounted.
+'ROOTDIR' is the path to the underlying directory that is to be mirrored,
+and 'MOUNTPOINT' is where the overlay should be mounted.
 
 
 OPTIONS
@@ -79,9 +79,6 @@ Options specific to *disorderfs*:
 
 BUGS
 ----
-'ROOTDIR' must be specified as an absolute path ('MOUNTPOINT' may be
-absolute or relative).
-
 *--share-locks=yes* is currently buggy: programs may report that a
 file is locked when it really isn't.
 
