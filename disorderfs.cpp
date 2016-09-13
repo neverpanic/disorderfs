@@ -251,13 +251,7 @@ int	main (int argc, char** argv)
 		return 2;
 	}
 
-	root = bare_arguments[0];
-
-	if (root[0] != '/') {
-		// TODO: support absolute paths by using *at syscalls everywhere, instead of string concatenation.
-		std::clog << "disorderfs: error: ROOTDIR is not an absolute path" << std::endl;
-		return 1;
-	}
+	root = realpath(bare_arguments[0].c_str(), NULL);
 
 	// Add some of our own hard-coded FUSE options:
 	fuse_opt_add_arg(&fargs, "-o");
