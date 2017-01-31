@@ -11,7 +11,7 @@ After releasing, please also release a signed tarball:
 
     $ VERSION=FIXME
 
-    $ git archive --format=tar --prefix=disorderfs-${VERSION} ${VERSION} | bzip2 -9 > disorderfs-${VERSION}.tar.bz2
+    $ git archive --format=tar --prefix=disorderfs-${VERSION}/ ${VERSION} | bzip2 -9 > disorderfs-${VERSION}.tar.bz2
 
     $ gpg --detach-sig --armor --output=disorderfs-${VERSION}.tar.bz2.asc < disorderfs-${VERSION}.tar.bz2
 
