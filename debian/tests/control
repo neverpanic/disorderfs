@@ -1,0 +1,3 @@
+Tests: 0001-smoketest
+Depends: @, kmod
+Restrictions: needs-root, isolation-machine, allow-stderr

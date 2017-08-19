@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# Simple smoketest of disorderfs
+
+set -eu
+
+# Lots of test environments simply can't install fuse.
+if ! modprobe fuse
+then
+	exit 0
+fi
+
+mkdir -p rootdir
+mkdir -p mountpoint
+touch rootdir/a rootdir/b
+
+trap 'rm -rf rootdir mountpoint' EXIT
+
+Test () {
+	EXPECTED="${1}"
+	shift 1
+
+	echo "I: Testing $*" >&2
+
+	disorderfs --sort-dirents=yes "${@}" rootdir mountpoint
+	OUTPUT="$(find mountpoint -type f -printf '%f')"
+	fusermount -u mountpoint
+
+	if [ "${OUTPUT}" != "${EXPECTED}" ]
+	then
+		echo "E: $*: Expected: \"${EXPECTED}\", saw \"${OUTPUT}\"" >&2
+		exit 2
+	fi
+}
+
+Test ab --reverse-dirents=no
+Test ba --reverse-dirents=yes
