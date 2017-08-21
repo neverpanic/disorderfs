@@ -1,3 +1,13 @@
+v0.5.2 (2017-08-21)
+  * Add -q, --quiet options to avoid printing to stdout.
+
+v0.5.1 (2016-09-13)
+  * Add --sort-dirents=yes|no option for forcing deterministic.
+  * Support absolute paths by transforming ROOTDIR on startup.
+    * Update man page.
+  * Print the behaviour on startup to stdout.
+  * Add testsuite.
+
 v0.4.3 (2016-06-09)
   * Fix bug that caused files to be created with the wrong permissions.
   * Minor code cleanup.
