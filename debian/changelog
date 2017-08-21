@@ -4,6 +4,7 @@ disorderfs (0.5.2-1) UNRELEASED; urgency=medium
 
   [ Ximin Luo ]
   *  Add -q, --quiet options to avoid printing to stdout.
+  * Update to latest Standards-Version; no changes required.
 
   [ Chris Lamb ]
   * Add docs regarding uploading a signed tarball.

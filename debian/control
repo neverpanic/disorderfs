@@ -3,7 +3,7 @@ Maintainer: Reproducible builds folks <reproducible-builds@lists.alioth.debian.o
 Uploaders: Andrew Ayer <agwa@andrewayer.name>, Chris Lamb <lamby@debian.org>
 Section: utils
 Priority: extra
-Standards-Version: 3.9.8
+Standards-Version: 4.0.1
 Build-Depends: debhelper (>= 9), libfuse-dev, libattr1-dev, pkg-config, asciidoc, xsltproc, libxml2-utils, docbook-xml, docbook-xsl
 Homepage: https://reproducible-builds.org/
 Vcs-Git: https://anonscm.debian.org/git/reproducible/disorderfs.git
