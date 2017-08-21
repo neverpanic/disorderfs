@@ -1,4 +1,4 @@
-disorderfs (0.5.2-1) UNRELEASED; urgency=medium
+disorderfs (0.5.2-1) unstable; urgency=medium
 
   * Team upload.
 
@@ -9,7 +9,7 @@ disorderfs (0.5.2-1) UNRELEASED; urgency=medium
   [ Chris Lamb ]
   * Add docs regarding uploading a signed tarball.
 
- -- Ximin Luo <infinity0@debian.org>  Mon, 21 Aug 2017 19:15:05 +0200
+ -- Ximin Luo <infinity0@debian.org>  Mon, 21 Aug 2017 19:37:28 +0200
 
 disorderfs (0.5.1-1) unstable; urgency=medium
 
