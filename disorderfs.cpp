@@ -42,7 +42,7 @@ extern "C" {
 #include <sys/file.h>
 #include <stddef.h>
 
-#define DISORDERFS_VERSION "0.5.1"
+#define DISORDERFS_VERSION "0.5.2"
 
 namespace {
 	std::vector<std::string>	bare_arguments;
@@ -56,6 +56,7 @@ namespace {
 		int			sort_dirents{0};
 		int			pad_blocks{1};
 		int			share_locks{0};
+		int			quiet{0};
 	};
 	Disorderfs_config		config;
 
@@ -180,7 +181,8 @@ namespace {
 	struct fuse_operations		disorderfs_fuse_operations;
 	enum {
 		KEY_HELP,
-		KEY_VERSION
+		KEY_VERSION,
+		KEY_QUIET
 	};
 #define DISORDERFS_OPT(t, p, v) { t, offsetof(Disorderfs_config, p), v }
 	const struct fuse_opt disorderfs_fuse_opts[] = {
@@ -199,6 +201,8 @@ namespace {
 		FUSE_OPT_KEY("--help", KEY_HELP),
 		FUSE_OPT_KEY("-V", KEY_VERSION),
 		FUSE_OPT_KEY("--version", KEY_VERSION),
+		FUSE_OPT_KEY("-q", KEY_QUIET),
+		FUSE_OPT_KEY("--quiet", KEY_QUIET),
 		FUSE_OPT_END
 	};
 	int fuse_opt_proc (void* data, const char* arg, int key, struct fuse_args* outargs)
@@ -212,6 +216,7 @@ namespace {
 			std::clog << "    -o opt,[opt...]        mount options (see below)" << std::endl;
 			std::clog << "    -h, --help             display help" << std::endl;
 			std::clog << "    -V, --version          display version info" << std::endl;
+			std::clog << "    -q, --quiet            don't output any status messages" << std::endl;
 			std::clog << std::endl;
 			std::clog << "disorderfs options:" << std::endl;
 			std::clog << "    --multi-user=yes|no    allow multiple users to access overlay (requires root; default: no)" << std::endl;
@@ -229,6 +234,9 @@ namespace {
 			fuse_opt_add_arg(outargs, "--version");
 			fuse_main(outargs->argc, outargs->argv, &disorderfs_fuse_operations, nullptr);
 			std::exit(0);
+		} else if (key == KEY_QUIET) {
+			config.quiet = true;
+			return 0;
 		}
 		return 1;
 	}
@@ -268,14 +276,16 @@ int	main (int argc, char** argv)
 	}
 	fuse_opt_add_arg(&fargs, bare_arguments[1].c_str());
 
-	if (config.shuffle_dirents) {
-		std::cout << "disorderfs: shuffling dirents" << std::endl;
-	}
-	if (config.reverse_dirents) {
-		std::cout << "disorderfs: reversing dirents" << std::endl;
-	}
-	if (config.sort_dirents) {
-		std::cout << "disorderfs: sorting dirents" << std::endl;
+	if (!config.quiet) {
+		if (config.shuffle_dirents) {
+			std::cout << "disorderfs: shuffling dirents" << std::endl;
+		}
+		if (config.reverse_dirents) {
+			std::cout << "disorderfs: reversing dirents" << std::endl;
+		}
+		if (config.sort_dirents) {
+			std::cout << "disorderfs: sorting dirents" << std::endl;
+		}
 	}
 
 	/*
