@@ -1,5 +1,7 @@
 disorderfs (0.5.2-1) UNRELEASED; urgency=medium
 
+  * Team upload.
+
   [ Ximin Luo ]
   *  Add -q, --quiet options to avoid printing to stdout.
 
