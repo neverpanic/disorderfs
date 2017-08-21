@@ -1,0 +1,20 @@
+Releasing a new version
+=======================
+
+After releasing the upstream tarball (as described in README), you should have
+a tarball and a signature file in the current directory. Then do::
+
+    $ for i in disorderfs-${VERSION}*; do x=${i/disorderfs-/disorderfs_}; ln -s "$i" "${x/.tar/.orig.tar}"; done
+    $ mv disorderfs-${VERSION}* disorderfs_${VERSION}* ..
+    $ pristine-tar commit ../disorderfs_${VERSION}.orig.tar.bz2 master
+    $ git checkout debian
+    $ git merge "${VERSION}"
+    $ dch -v "${VERSION}-1"
+    # [.. anything else ..]
+    $ dch -r
+    $ git commit -a -m "Release ${VERSION}-1 to Debian unstable."
+    $ gbp buildpackage --changes-option=-S
+    $ debsign ../disorderfs_${VERSION}-1_amd64.changes
+    $ dput ../disorderfs_${VERSION}-1_amd64.changes
+    $ gbp buildpackage --git-tag-only
+    $ git push origin debian master pristine-tar --tags
