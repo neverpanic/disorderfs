@@ -2,7 +2,7 @@ Source: disorderfs
 Maintainer: Reproducible builds folks <reproducible-builds@lists.alioth.debian.org>
 Uploaders: Andrew Ayer <agwa@andrewayer.name>, Chris Lamb <lamby@debian.org>
 Section: utils
-Priority: extra
+Priority: optional
 Standards-Version: 4.0.1
 Build-Depends: debhelper (>= 9), libfuse-dev, libattr1-dev, pkg-config, asciidoc, xsltproc, libxml2-utils, docbook-xml, docbook-xsl
 Homepage: https://reproducible-builds.org/
