@@ -5,7 +5,7 @@ Uploaders: Andrew Ayer <agwa@andrewayer.name>,
  Holger Levsen <holger@debian.org>
 Section: utils
 Priority: optional
-Standards-Version: 4.0.1
+Standards-Version: 4.1.0
 Build-Depends: debhelper (>= 9), libfuse-dev, libattr1-dev, pkg-config, asciidoc, xsltproc, libxml2-utils, docbook-xml, docbook-xsl
 Homepage: https://reproducible-builds.org/
 Vcs-Git: https://anonscm.debian.org/git/reproducible/disorderfs.git
