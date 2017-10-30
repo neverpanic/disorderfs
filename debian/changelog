@@ -1,9 +1,22 @@
-disorderfs (0.5.2-1.1) UNRELEASED; urgency=medium
+disorderfs (0.5.2-2) unstable; urgency=medium
 
-  * Move package to section 'optional' from 'extra'.
-  * Add myself to uploaders.
+  [ Holger Levsen ]
+  * debian/control:
+    - Move package to section 'optional' from 'extra'.
+    - Add myself to uploaders.
+    - Bump Standards-Version to 4.1.1, no changes needed.
+    - Raise build-depends to debhelper >= 10.2.5~.
+    - Use /git/ instead of /cgit/ URL for Vcs-Browser.
+  * debian/compat: Bump to level 10.
 
- -- Holger Levsen <holger@debian.org>  Mon, 21 Aug 2017 20:30:05 +0200
+  [ Ximin Luo ]
+  * Add my signing key to upstream/signing-key.asc.
+
+  [ Chris Lamb ]
+  * Bump Standards-Version to 4.1.0.
+  * debian/watch: Use HTTPS URI.
+
+ -- Holger Levsen <holger@debian.org>  Mon, 30 Oct 2017 17:52:04 +0100
 
 disorderfs (0.5.2-1) unstable; urgency=medium
 
