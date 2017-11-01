@@ -1,5 +1,6 @@
 #
-# Copyright 2015 Andrew Ayer
+# Copyright 2015 Andrew Ayer <agwa@andrewayer.name>
+# Copyright 2016, 2017 Chris Lamb <lamby@debian.org>
 # 
 # This file is part of disorderfs.
 # 

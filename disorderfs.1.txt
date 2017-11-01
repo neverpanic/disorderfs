@@ -111,6 +111,7 @@ c  b  a  ..  . <5>
 <4> We mount *rootdir* again, sorting the results in reversed order...
 <3> ... and the directory contents are returned in reverse.
 
-AUTHOR
-------
+AUTHORS
+-------
 Andrew Ayer <agwa@andrewayer.name>
+Chris Lamb <lamby@debian.org>
