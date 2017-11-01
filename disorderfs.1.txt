@@ -83,6 +83,34 @@ BUGS
 file is locked when it really isn't.
 
 
+EXAMPLE
+-------
+
+If you are attempting to test a https://reproducible-builds.org[Reproducible
+Builds] issue, it is recommended you use *--sort-dirents=yes* instead of
+*--shuffle-dirents=yes* to ensure that any difference between builds is
+deterministic in itself. For example:
+
+[source,sh]
+----
+
+$ mkdir rootdir sorted reversed
+$ touch rootdir/a rootdir/b rootdir/c <1>
+
+$ disorderfs --sort-dirents=yes --reverse-dirents=no rootdir sorted <2>
+$ ls -f sorted
+.  ..  a  b  c <3>
+
+$ disorderfs --sort-dirents=yes --reverse-dirents=yes rootdir reversed <4>
+$ ls -f reversed
+c  b  a  ..  . <5>
+----
+<1> First, we create some example files
+<2> Mount *rootdir* in sorted mode...
+<3> ... and the results are in sorted order.
+<4> We mount *rootdir* again, sorting the results in reversed order...
+<3> ... and the directory contents are returned in reverse.
+
 AUTHOR
 ------
 Andrew Ayer <agwa@andrewayer.name>
