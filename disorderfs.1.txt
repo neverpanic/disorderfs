@@ -93,7 +93,6 @@ deterministic in itself. For example:
 
 [source,sh]
 ----
-
 $ mkdir rootdir sorted reversed
 $ touch rootdir/a rootdir/b rootdir/c <1>
 
