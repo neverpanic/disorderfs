@@ -1,6 +1,6 @@
 Source: disorderfs
 Maintainer: Reproducible builds folks <reproducible-builds@lists.alioth.debian.org>
-Uploaders: Andrew Ayer <agwa@andrewayer.name>, 
+Uploaders: Andrew Ayer <agwa@andrewayer.name>,
  Chris Lamb <lamby@debian.org>,
  Holger Levsen <holger@debian.org>
 Section: utils
