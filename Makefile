@@ -31,7 +31,7 @@ HAS_A2X ?= $(shell command -v a2x >/dev/null && echo yes || echo no)
 
 # FUSE
 FUSE_CFLAGS ?= $(shell pkg-config --cflags fuse) -DFUSE_USE_VERSION=26
-FUSE_LIBS ?= $(shell pkg-config --libs fuse) -lulockmgr
+FUSE_LIBS ?= $(shell pkg-config --libs fuse)
 
 # CXXFLAGS
 CXXFLAGS += -std=c++11 -Wno-unused-parameter

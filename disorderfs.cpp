@@ -25,7 +25,9 @@
 #include <fstream>
 #include <fuse.h>
 extern "C" {
+#ifndef __APPLE__
 #include <ulockmgr.h>
+#endif
 }
 #include <dirent.h>
 #include <iostream>
@@ -37,7 +39,9 @@ extern "C" {
 #include <vector>
 #include <random>
 #include <algorithm>
+#ifndef __APPLE__
 #include <attr/xattr.h>
+#endif
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <sys/file.h>
@@ -74,18 +78,22 @@ namespace {
 	// We need to set credentials for a single thread only, so call the syscalls directly.
 	int thread_seteuid (uid_t euid)
 	{
+#ifndef __APPLE__
 #ifdef SYS_setresuid32
 		return syscall(SYS_setresuid32, static_cast<uid_t>(-1), euid, static_cast<uid_t>(-1));
 #else
 		return syscall(SYS_setresuid, static_cast<uid_t>(-1), euid, static_cast<uid_t>(-1));
 #endif
+#endif
 	}
 	int thread_setegid (gid_t egid)
 	{
+#ifndef __APPLE__
 #ifdef SYS_setresgid32
 		return syscall(SYS_setresgid32, static_cast<gid_t>(-1), egid, static_cast<gid_t>(-1));
 #else
 		return syscall(SYS_setresgid, static_cast<gid_t>(-1), egid, static_cast<gid_t>(-1));
+#endif
 #endif
 	}
 	int thread_setgroups (size_t size, const gid_t* list)
@@ -396,6 +404,7 @@ int	main (int argc, char** argv)
 		close(info->fh);
 		return 0; // return value is ignored
 	};
+#ifndef __APPLE__
 	disorderfs_fuse_operations.fsync = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
 		return wrap(is_datasync ? fdatasync(info->fh) : fsync(info->fh));
 	};
@@ -417,6 +426,7 @@ int	main (int argc, char** argv)
 		Guard g;
 		return wrap(lremovexattr((root + path).c_str(), name));
 	};
+#endif
 	disorderfs_fuse_operations.opendir = [] (const char* path, struct fuse_file_info* info) -> int {
 		Guard g;
 		std::unique_ptr<Dirents> dirents{new Dirents};
@@ -464,10 +474,12 @@ int	main (int argc, char** argv)
 		delete get_fuse_data<Dirents*>(info);
 		return 0;
 	};
+#ifndef __APPLE__
 	disorderfs_fuse_operations.fsyncdir = [] (const char* path, int is_datasync, struct fuse_file_info* info) -> int {
 		// XXX: is it OK to just use fsync?  Not clear on why FUSE has a separate fsyncdir operation
 		return wrap(is_datasync ? fdatasync(info->fh) : fsync(info->fh));
 	};
+#endif
 	disorderfs_fuse_operations.create = [] (const char* path, mode_t mode, struct fuse_file_info* info) -> int {
 		Guard g;
 		// XXX: use info->flags?
@@ -489,9 +501,11 @@ int	main (int argc, char** argv)
 		return 0;
 	};
 	if (config.share_locks) {
+#ifndef __APPLE__
 		disorderfs_fuse_operations.lock = [] (const char* path, struct fuse_file_info* info, int cmd, struct flock* lock) -> int {
 			return ulockmgr_op(info->fh, cmd, lock, &info->lock_owner, sizeof(info->lock_owner));
 		};
+#endif
 		disorderfs_fuse_operations.flock = [] (const char* path, struct fuse_file_info* info, int op) -> int {
 			return wrap(flock(info->fh, op));
 		};
@@ -544,9 +558,11 @@ int	main (int argc, char** argv)
 
 		return 0;
 	};
+#ifndef __APPLE__
 	disorderfs_fuse_operations.fallocate = [] (const char* path, int mode, off_t off, off_t len, struct fuse_file_info* info) -> int {
 		return wrap(fallocate(info->fh, mode, off, len));
 	};
+#endif
 
 	return fuse_main(fargs.argc, fargs.argv, &disorderfs_fuse_operations, nullptr);
 }
